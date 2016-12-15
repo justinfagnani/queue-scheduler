@@ -92,12 +92,15 @@ class TaskContext {
 ## Install
 
 ```
+git clone https://github.com/justinfagnani/queue-scheduler.git
+cd queue-scheduler
 yarn global add polymer-cli@next
 yarn install
 bower install
+npm run build
 ```
 
-## Run the one little test
+## Run the two little tests
 
 ```
 polymer test lib/test/scheduler_test.html -l chrome -p
