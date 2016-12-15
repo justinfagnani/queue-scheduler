@@ -6,8 +6,8 @@ passing their `TaskContext` to sub-task async functions.
 
 Tasks are added to named queues, which have their own scheduling functions.
 
-Tasks are not aware of how they're scheduled. Whether they are on microtask, AnimationFrameQueueScheduler
-frame, idle, or other timing.
+Tasks are not aware of how they're scheduled. Whether they are on microtask, animation
+frame, idle, setInterval, or other timing.
 
 ## Example
 
