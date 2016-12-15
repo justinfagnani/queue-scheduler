@@ -21,10 +21,11 @@ export declare class Scheduler {
 }
 export declare class TaskQueue {
     name: string;
-    tasks: Task<any>[];
+    tasks: Set<Task<any>>;
     scheduler: QueueScheduler;
     constructor(scheduler: QueueScheduler);
     scheduleTask<T>(taskFn: TaskFunction<T>): Promise<T>;
+    removeTask(task: Task<any>): void;
 }
 /**
  * An object that controls when tasks are executed from a queue or set of queues.
@@ -62,13 +63,14 @@ export declare class AnimationFrameQueueScheduler extends BaseQueueScheduler {
 }
 export declare class Task<T> {
     _taskFn: TaskFunction<T>;
+    _queue: TaskQueue;
     _completed: Promise<T>;
     _resolveCompleted: (v: T) => void;
     _rejectCompleted: (err: any) => void;
     _context: TaskContext | null;
     _isComplete: boolean;
     _isCanceled: boolean;
-    constructor(taskFn: TaskFunction<T>);
+    constructor(taskFn: TaskFunction<T>, queue: TaskQueue);
     readonly completed: Promise<T>;
     /**
      * Continues or starts this task.
@@ -78,14 +80,14 @@ export declare class Task<T> {
      *
      * Returns a Promise that resolves when the task yields.
      */
-    _continue(): Promise<void>;
+    _continue(): Promise<boolean>;
     cancel(): void;
 }
 export declare class TaskContext {
     _continue: (() => void) | null;
     _cancel: ((error?: any) => void) | null;
-    _yielded: Promise<void>;
-    _yield: (() => void);
+    _yielded: Promise<boolean>;
+    _yield: ((done: boolean) => void);
     _error: ((error?: any) => void);
     constructor();
     /**

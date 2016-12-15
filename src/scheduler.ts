@@ -34,7 +34,7 @@ export class Scheduler {
 
 export class TaskQueue {
   name: string;
-  tasks: Task<any>[] = [];
+  tasks = new Set<Task<any>>();
   scheduler: QueueScheduler;
 
   constructor(scheduler: QueueScheduler) {
@@ -42,10 +42,15 @@ export class TaskQueue {
   }
 
   scheduleTask<T>(taskFn: TaskFunction<T>): Promise<T> {
-    const task = new Task(taskFn);
-    this.tasks.push(task);
+    const task = new Task(taskFn, this);
+    this.tasks.add(task);
     this.scheduler.schedule(this);
     return task._completed;
+  }
+
+  removeTask(task: Task<any>) {
+    console.assert(task._queue === this);
+    this.tasks.delete(task);
   }
 }
 
@@ -73,7 +78,7 @@ export abstract class BaseQueueScheduler {
     this._queues.add(queue);
     if (!this._queueData.has(queue)) {
       this._queueData.set(queue, {
-        taskIterator: queue.tasks[Symbol.iterator](),
+        taskIterator: queue.tasks.values(),
       });
     }
     if (this.nextTask == null) {
@@ -103,10 +108,14 @@ export abstract class BaseQueueScheduler {
       this.nextTask = null;
       return;
     }
+    if (queue.tasks.size === 0) {
+      this.nextTask = null;
+      return;
+    }
     const queueData = this._queueData.get(queue);
     let next = queueData.taskIterator.next();
     if (next.done) {
-      queueData.taskIterator = queue.tasks[Symbol.iterator]();
+      queueData.taskIterator = queue.tasks.values();
       next = queueData.taskIterator.next();
     }
     console.assert(!next.done);
@@ -167,20 +176,31 @@ export class AnimationFrameQueueScheduler extends BaseQueueScheduler {
       if (tasksExecuted === 0 || remainingFrameBudget >= taskData.avgTickDuration) {
         tasksExecuted++;
         this.advanceTask();
-        await task._continue();
+        const done = await task._continue();
         const end = performance.now();
         const duration = end - start;
         taskData.avgTickDuration = (taskData.avgTickDuration * taskData.tickCount + duration) / ++taskData.tickCount;
+        if (done) {
+          // clean up task
+          const queue = task._queue;
+          queue.removeTask(task);
+          if (this.nextTask === task) {
+            this.advanceTask();
+          }
+        }
       } else {
         break;
       }
     }
-    this._schedule();
+    if (this.nextTask != null) {
+      this._schedule();
+    }
   }
 }
 
 export class Task<T> {
   _taskFn: TaskFunction<T>;
+  _queue: TaskQueue;
   _completed: Promise<T>;
   _resolveCompleted: (v: T) => void;
   _rejectCompleted: (err: any) => void;
@@ -188,8 +208,9 @@ export class Task<T> {
   _isComplete = false;
   _isCanceled = false;
 
-  constructor(taskFn: TaskFunction<T>) {
+  constructor(taskFn: TaskFunction<T>, queue: TaskQueue) {
     this._taskFn = taskFn;
+    this._queue = queue;
     this._completed = new Promise((resolve, reject) => {
       this._resolveCompleted = resolve;
       this._rejectCompleted = reject;
@@ -208,7 +229,7 @@ export class Task<T> {
    * 
    * Returns a Promise that resolves when the task yields.
    */
-  async _continue(): Promise<void> {
+  async _continue(): Promise<boolean> {
     if (this._context == null) {
       this._context = new TaskContext();
       // We haven't started the task, so invoke the task function.
@@ -220,6 +241,11 @@ export class Task<T> {
           this._resolveCompleted(result);
         } catch (e) {
           this._rejectCompleted(e);
+        } finally {
+          // Cleanup
+
+          // _continue() is waiting on _context.yielded, so resolve it to keep going
+          this._context!._yield(true);
         }
       })();
     } else {
@@ -233,7 +259,7 @@ export class Task<T> {
       _continue!();
     }
     // Wait till the task yields
-    await this._context._yielded;
+    return this._context._yielded;
   }
 
   cancel() {
@@ -261,12 +287,12 @@ export class Task<T> {
 export class TaskContext {
   _continue: (() => void) | null;
   _cancel: ((error?: any) => void) | null;
-  _yielded: Promise<void>;
-  _yield: (() => void);
+  _yielded: Promise<boolean>;
+  _yield: ((done: boolean) => void);
   _error: ((error?: any) => void);
 
   constructor() {
-    this._yielded = new Promise<void>((resolve, reject) => {
+    this._yielded = new Promise<boolean>((resolve, reject) => {
       this._yield = resolve;
       this._error = reject;
     });
@@ -280,11 +306,11 @@ export class TaskContext {
     console.assert(this._continue == null);
     console.assert(this._cancel == null);
     const _yield = this._yield;
-    this._yielded = new Promise<void>((resolve, reject) => {
+    this._yielded = new Promise<boolean>((resolve, reject) => {
       this._yield = resolve;
       this._error = reject;
     });
-    _yield();
+    _yield(false);
     return new Promise<void>((resolve, reject) => {
       this._continue = resolve;
       this._cancel = reject;
