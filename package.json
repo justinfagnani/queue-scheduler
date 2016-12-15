@@ -1,0 +1,18 @@
+{
+  "name": "queue-scheduler",
+  "scripts": {
+    "build": "tsc && cp ./src/test/*.html ./lib/test"
+  },
+  "devDependencies": {
+    "@types/chai": "^3.4.34",
+    "@types/mocha": "^2.2.32",
+    "@types/node": "^6.0.46",
+    "typescript": "^2.1.4"
+  },
+  "version": "0.0.1",
+  "description": "A scheduling API for JavaScript",
+  "main": "lib/scheduler.js",
+  "repository": "https://github.com/justinfagnani/queue-scheduler",
+  "author": "justin@fagnani.com",
+  "license": "Apache 2.0"
+}
