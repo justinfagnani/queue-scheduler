@@ -67,6 +67,8 @@ export abstract class BaseQueueScheduler {
   protected _queueData = new WeakMap<TaskQueue, any>();
   protected _taskData = new  WeakMap<Task<any>, any>();
 
+  protected _callbackId = 0;
+
   protected _nextQueue: TaskQueue | null;
   nextTask: Task<any> | null;
 
@@ -83,6 +85,9 @@ export abstract class BaseQueueScheduler {
     }
     if (this.nextTask == null) {
       this.advanceTask();
+    }
+    if (this.nextTask != null && this._callbackId === 0) {
+      this._callbackId = this._schedule();
     }
   }
 
@@ -134,46 +139,24 @@ export abstract class BaseQueueScheduler {
     return taskData;
   }
 
-}
+  /**
+   * Schedule a new callback of _execute. Returns a callback id.
+   */
+  protected abstract _schedule(): number;
 
-/**
- * A QueueScheduler that uses requestAnimationFrame timing.
- * 
- * This scheduler tries to fit in as many task ticks as will fit in a frame. It
- * remembers the average time a tick takes per task and only executes a tick if it
- * thinks it'll fit in the remaining frame budget. It's a very simple estimate and
- * doesn't try to fit in faster tasks if a long one is next, so slow tasks can starve
- * fast ones.
- */
-export class AnimationFrameQueueScheduler extends BaseQueueScheduler {
-  private _frameId = 0;
-
-  schedule(queue: TaskQueue) {
-    super.schedule(queue);
-    this._schedule();
-  }
-
-  private _schedule() {
-    // Check if we have a scheduled rAF already
-    if (this._frameId === 0) {
-      // We don't, so schedule one
-      this._frameId = requestAnimationFrame(
-          (frameStart: number) => this._execute(frameStart));
-    }
-  }
-
-  private async _execute(frameStart: number) {
-    console.log('AnimationFrameQueueScheduler._execute');
-    // Mark that we don't have a scheduled rAF
-    this._frameId = 0;
+  protected async _execute(initialTimeRemaining: number) {
+    console.log(`BaseQueueScheduler._execute ${initialTimeRemaining}`);
+    // Mark that we don't have a scheduled callback
+    this._callbackId = 0;
+    const estimatedEnd = performance.now() + initialTimeRemaining;
     let tasksExecuted = 0;
     while (this.nextTask) {
       const task = this.nextTask;
       const taskData = this.getTaskData(task);
       const start = performance.now();
-      const remainingFrameBudget = 12 - (start - frameStart);
+      const timeRemaining = estimatedEnd - start;
       // Always execute at least one task, or if we think there's enough time left in the frame
-      if (tasksExecuted === 0 || remainingFrameBudget >= taskData.avgTickDuration) {
+      if (tasksExecuted === 0 || timeRemaining >= taskData.avgTickDuration) {
         tasksExecuted++;
         this.advanceTask();
         const done = await task._continue();
@@ -192,9 +175,63 @@ export class AnimationFrameQueueScheduler extends BaseQueueScheduler {
         break;
       }
     }
-    if (this.nextTask != null) {
-      this._schedule();
+    if (this.nextTask != null && this._callbackId === 0) {
+      this._callbackId = this._schedule();
     }
+  }
+
+}
+
+/**
+ * A QueueScheduler that uses requestAnimationFrame timing.
+ * 
+ * This scheduler tries to fit in as many task ticks as will fit in a frame. It
+ * remembers the average time a tick takes per task and only executes a tick if it
+ * thinks it'll fit in the remaining frame budget. It's a very simple estimate and
+ * doesn't try to fit in faster tasks if a long one is next, so slow tasks can starve
+ * fast ones.
+ */
+export class AnimationFrameQueueScheduler extends BaseQueueScheduler {
+
+  /**
+   * Time allocated to script execution per frame, in ms.
+   */
+  private _frameBudget: number;
+
+  constructor(frameBudget: number = 12) {
+    super();
+    this._frameBudget = frameBudget;
+  }
+
+  protected _schedule() {
+    return requestAnimationFrame((frameStart: number) => {
+      const timeRemaining = this._frameBudget + frameStart - performance.now();
+      this._execute(timeRemaining);
+    });
+  }
+}
+
+declare global {
+  interface IdleDeadline {
+    timeRemaining(): number;
+    didTimeout: boolean;
+  }
+  interface Window {
+    requestIdleCallback(callback: (deadline: IdleDeadline) => void): number;
+  }
+}
+
+/**
+ * A QueueScheduler that uses requestIdleCallback timing.
+ * 
+ * This scheduler tries to fit in as many task ticks as will fit under the extimated
+ * time that the UA expects the user to remain idle.
+ */
+export class IdleQueueScheduler extends BaseQueueScheduler {
+  protected _schedule(): number {
+    return window.requestIdleCallback((deadline) => {
+      this._execute(deadline.timeRemaining());
+    });
   }
 }
 

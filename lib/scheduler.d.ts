@@ -38,6 +38,7 @@ export declare abstract class BaseQueueScheduler {
     protected _queueIterator: Iterator<TaskQueue>;
     protected _queueData: WeakMap<TaskQueue, any>;
     protected _taskData: WeakMap<Task<any>, any>;
+    protected _callbackId: number;
     protected _nextQueue: TaskQueue | null;
     nextTask: Task<any> | null;
     constructor();
@@ -45,6 +46,11 @@ export declare abstract class BaseQueueScheduler {
     private _advanceQueue();
     advanceTask(): void;
     getTaskData(task: Task<any>): any;
+    /**
+     * Schedule a new callback of _execute. Returns a callback id.
+     */
+    protected abstract _schedule(): number;
+    protected _execute(initialTimeRemaining: number): Promise<void>;
 }
 /**
  * A QueueScheduler that uses requestAnimationFrame timing.
@@ -56,10 +62,30 @@ export declare abstract class BaseQueueScheduler {
  * fast ones.
  */
 export declare class AnimationFrameQueueScheduler extends BaseQueueScheduler {
-    private _frameId;
-    schedule(queue: TaskQueue): void;
-    private _schedule();
-    private _execute(frameStart);
+    /**
+     * Time allocated to script execution per frame, in ms.
+     */
+    private _frameBudget;
+    constructor(frameBudget?: number);
+    protected _schedule(): number;
+}
+declare global  {
+    interface IdleDeadline {
+        timeRemaining(): number;
+        didTimeout: boolean;
+    }
+    interface Window {
+        requestIdleCallback(callback: (deadline: IdleDeadline) => void): number;
+    }
+}
+/**
+ * A QueueScheduler that uses requestIdleCallback timing.
+ *
+ * This scheduler tries to fit in as many task ticks as will fit under the extimated
+ * time that the UA expects the user to remain idle.
+ */
+export declare class IdleQueueScheduler extends BaseQueueScheduler {
+    protected _schedule(): number;
 }
 export declare class Task<T> {
     _taskFn: TaskFunction<T>;
@@ -96,3 +122,4 @@ export declare class TaskContext {
      */
     nextTick(): Promise<void>;
 }
+export {};

@@ -17,12 +17,9 @@ const scheduler = new Scheduler();
 scheduler.addQueue('animation', new AnimationFrameQueueScheduler());
 
 const task = async (context: TaskContext) => {
-  console.log('task started');
   for (let i = 0; i < 50; i++) {
-    // yield to the scheduler
+    doSomething();
     await context.nextTick();
-    let time = performance.now();
-    console.log('iteration', i, time);
   }
   return 42;
 }
@@ -52,6 +49,7 @@ type TaskFunction<T> = (taskContext: TaskContext) => Promise<T>;
  */
 class Scheduler {
   addQueue(name: string, scheduler: QueueScheduler): void;
+
   /**
    * Schedule a task on a named queue. The queue must already exist via a call
    * to `addQueue`.
@@ -80,6 +78,15 @@ interface QueueScheduler {
 class AnimationFrameQueueScheduler extends BaseQueueScheduler {
 }
 
+/**
+ * A QueueScheduler that uses requestIdleCallback timing.
+ * 
+ * This scheduler tries to fit in as many task ticks as will fit under the extimated
+ * time that the UA expects the user to remain idle.
+ */
+class IdleQueueScheduler extends BaseQueueScheduler {
+}
+
 class TaskContext {
   /**
    * Yields control back to the scheduler. Returns a Promise that resolves when
@@ -105,3 +112,10 @@ npm run build
 ```
 polymer test lib/test/scheduler_test.html -l chrome -p
 ```
+
+## Performance
+
+No optimizations of profiling has been done. One trip though the scheduler and
+back to a task takes about 1ms on Chrome 56, which isn't very fast, suggesting
+some low hanging fruit, or slow Promises. The same round-trip is about 10x faster
+on Chrome 57 🎉, with out without native async functions.

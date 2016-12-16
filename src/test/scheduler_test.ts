@@ -1,4 +1,4 @@
-import {AnimationFrameQueueScheduler, Scheduler, TaskContext} from '../scheduler.js';
+import {AnimationFrameQueueScheduler, IdleQueueScheduler, Scheduler, TaskContext} from '../scheduler.js';
 // import {assert} from 'chai';
 
 declare let assert: any;
@@ -57,6 +57,26 @@ suite('scheduler', () => {
     ]);
     assert.equal(42, result1);
     assert.equal(99, result2);
+
+  });
+
+  suite('IdleQueueScheduler', async () => {
+
+    test('executes a task', async () => {
+
+      scheduler.addQueue('idle', new IdleQueueScheduler());
+      const task = async (context: TaskContext) => {
+        console.log('task started');
+        for (let i = 0; i < 25; i++) {
+          await context.nextTick();
+          let time = performance.now();
+          console.log('iteration', i, time);
+        }
+        return 42;
+      };
+      const result = await scheduler.scheduleTask('idle', task);
+      assert.equal(42, result);
+    });
 
   });
 
