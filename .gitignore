@@ -1,3 +1,5 @@
-node_modules/
-bower_components/
-lib/test/
+/node_modules/
+/lib/
+/index.js
+/index.js.map
+/index.d.ts
