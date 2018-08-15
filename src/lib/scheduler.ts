@@ -1,6 +1,6 @@
 import {QueueScheduler} from './queue-scheduler.js';
-import {TaskFunction} from './task-function.js';
 import {TaskQueue} from './task-queue.js';
+import {Task} from './task.js';
 
 /**
  * Maintains a set of queues, each with their own QueueScheduler to schedule
@@ -20,9 +20,9 @@ export class Scheduler {
    *
    * TODO: Accept a CancelToken
    */
-  scheduleTask<T>(queueName: string, task: TaskFunction<T>): Promise<T> {
+  scheduleTask<T>(queueName: string, task: Task<T>): Promise<T> {
     const queue = this._queues.get(queueName);
-    if (queue == null) {
+    if (queue === undefined) {
       throw new Error(`No queue named ${queueName}`);
     }
     return queue.scheduleTask(task);

@@ -1,5 +1,5 @@
 import { QueueScheduler } from './queue-scheduler.js';
-import { TaskFunction } from './task-function.js';
+import { Task } from './task.js';
 /**
  * Maintains a set of queues, each with their own QueueScheduler to schedule
  * task execution.
@@ -13,5 +13,5 @@ export declare class Scheduler {
      *
      * TODO: Accept a CancelToken
      */
-    scheduleTask<T>(queueName: string, task: TaskFunction<T>): Promise<T>;
+    scheduleTask<T>(queueName: string, task: Task<T>): Promise<T>;
 }

@@ -7,7 +7,7 @@ suite('scheduler', () => {
         const task = async (context) => {
             console.log('task started');
             for (let i = 0; i < 25; i++) {
-                await context.nextTick();
+                await context.yield();
                 let time = performance.now();
                 console.log('iteration', i, time);
             }
@@ -21,7 +21,7 @@ suite('scheduler', () => {
         const task1 = async (context) => {
             console.log('task1 started');
             for (let i = 0; i < 25; i++) {
-                await context.nextTick();
+                await context.yield();
                 let time = performance.now();
                 console.log('task1 iteration', i, time);
             }
@@ -30,7 +30,7 @@ suite('scheduler', () => {
         const task2 = async (context) => {
             console.log('task2 started');
             for (let i = 0; i < 25; i++) {
-                await context.nextTick();
+                await context.yield();
                 let time = performance.now();
                 console.log('task2 iteration', i, time);
             }
@@ -49,7 +49,7 @@ suite('scheduler', () => {
             const task = async (context) => {
                 console.log('task started');
                 for (let i = 0; i < 25; i++) {
-                    await context.nextTick();
+                    await context.yield();
                     let time = performance.now();
                     console.log('iteration', i, time);
                 }

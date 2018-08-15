@@ -1,8 +1,6 @@
 <!doctype html>
 <html>
   <head>
-    <script src="../../imd/imd.js"></script>
-    <script src="../lib/scheduler.js"></script>
     <style>
       #container > span {
         display: inline-block;
@@ -14,37 +12,32 @@
   <body>
     <button id="stop">Stop<button>
     <div id="container"></div>
-    <script>
-      define(['../lib/scheduler.js'], (schedulerLib) => {
-        const Scheduler = schedulerLib.Scheduler;
-        const AnimationFrameQueueScheduler = schedulerLib.AnimationFrameQueueScheduler;
+    <script type="module">
+      import {scheduler, AnimationFrameQueueScheduler} from '../index.js';
+      const stopButton = document.querySelector('#stop');
+      const container = document.querySelector('#container');
 
-        const scheduler = new Scheduler();
-        const stopButton = document.querySelector('#stop');
-        const container = document.querySelector('#container');
-
-        let stopped = false;
-        stopButton.addEventListener('click', () => {
-          stopped = true;
-        });
-
-        scheduler.addQueue('animation', new AnimationFrameQueueScheduler());
-
-        let i = 0;
-
-        const task = async (context) => {
-          while (!stopped) {
-            const span = document.createElement('span');
-            span.innerText = `span #${i++}`;
-            container.appendChild(span);
-            await context.nextTick();
-          }
-        }
-        (async () => {
-          const result = await scheduler.scheduleTask('animation', task);
-          console.log(result);
-        })();
+      let stopped = false;
+      stopButton.addEventListener('click', () => {
+        stopped = true;
       });
+
+      scheduler.addQueue('animation', new AnimationFrameQueueScheduler());
+
+      let i = 0;
+
+      const task = async (context) => {
+        while (!stopped) {
+          const span = document.createElement('span');
+          span.innerText = `span #${i++}`;
+          container.appendChild(span);
+          await context.yield();
+        }
+      }
+      (async () => {
+        const result = await scheduler.scheduleTask('animation', task);
+        console.log(result);
+      })();
     </script>
   </body>
 </html>

@@ -14,10 +14,10 @@ suite('scheduler', () => {
 
   test('a task is executed', async () => {
     scheduler.addQueue('test', new AnimationFrameQueueScheduler());
-    const task = async (context: TaskContext) => {
+    const task = async (context: TaskContext<number>) => {
       console.log('task started');
       for (let i = 0; i < 25; i++) {
-        await context.nextTick();
+        await context.yield();
         let time = performance.now();
         console.log('iteration', i, time);
       }
@@ -30,19 +30,19 @@ suite('scheduler', () => {
   test('two tasks are executed concurrently', async () => {
     scheduler.addQueue('test', new AnimationFrameQueueScheduler());
 
-    const task1 = async (context: TaskContext) => {
+    const task1 = async (context: TaskContext<number>) => {
       console.log('task1 started');
       for (let i = 0; i < 25; i++) {
-        await context.nextTick();
+        await context.yield();
         let time = performance.now();
         console.log('task1 iteration', i, time);
       }
       return 42;
     };
-    const task2 = async (context: TaskContext) => {
+    const task2 = async (context: TaskContext<number>) => {
       console.log('task2 started');
       for (let i = 0; i < 25; i++) {
-        await context.nextTick();
+        await context.yield();
         let time = performance.now();
         console.log('task2 iteration', i, time);
       }
@@ -60,10 +60,10 @@ suite('scheduler', () => {
   suite('IdleQueueScheduler', async () => {
     test('executes a task', async () => {
       scheduler.addQueue('idle', new IdleQueueScheduler());
-      const task = async (context: TaskContext) => {
+      const task = async (context: TaskContext<number>) => {
         console.log('task started');
         for (let i = 0; i < 25; i++) {
-          await context.nextTick();
+          await context.yield();
           let time = performance.now();
           console.log('iteration', i, time);
         }

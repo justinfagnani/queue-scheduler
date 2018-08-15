@@ -5,7 +5,6 @@ export { AnimationFrameQueueScheduler } from './lib/animation-frame-queue-schedu
 export { IdleQueueScheduler } from './lib/idle-queue-scheduler.js';
 export { Scheduler } from './lib/scheduler.js';
 export { TaskContext } from './lib/task-context.js';
-export { TaskFunction } from './lib/task-function.js';
 export { Task } from './lib/task.js';
 /**
  * The global Schduler instance.
