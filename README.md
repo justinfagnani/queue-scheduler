@@ -1,18 +1,29 @@
 # A JavaScript Scheduler API
 
-Tasks are async functions that take a single `TaskContext` argument. Tasks yield to
-the scheduler by awaiting on `TaskContext.prototype.nextTick()`. Tasks can be composed by
-passing their `TaskContext` to sub-task async functions.
+## Overview
+
+`queue-scheduler` implements a cooperative multi-tasking system based on queus of asynchronous JavaScript functions.
+
+### Tasks
+
+Tasks are async functions that take a single `TaskContext` argument. Tasks yield to the scheduler by awaiting on `TaskContext.prototype.nextTick()`. Tasks can be composed by passing their `TaskContext` to sub-task async functions.
 
 Tasks are added to named queues, which have their own scheduling functions.
 
-Tasks are not aware of how they're scheduled. Whether they are on microtask, animation
-frame, idle, setInterval, or other timing.
+Tasks are not aware of how they're scheduled. Whether they are on microtask, animation frame, idle, setInterval, or other timing.
+
+### Scheduler
+
+A `Scheduler` controls a set of `TaskQueue`s and allows scheduling new `Task`s onto queues by name.
+
+### TaskQueue
+
+A `TaskQueue` is an ordered set of `Task`s controlled by a single `QueueScheduler` which determines when `Tasks` are run. A `TaskQueue` usually represents a global timing that tasks can be executed on, such as microtask, animation frame, idle callback, etc.
 
 ## Example
 
 ```typescript
-import {scheduler} from 'schduler';
+import {scheduler} from 'queue-schduler';
 
 const task = async (context: TaskContext) => {
   for (let i = 0; i < 50; i++) {
@@ -27,9 +38,7 @@ const result = await scheduler.scheduleTask('animation', task);
 console.log(result); // 42
 ```
 
-Because `AnimationFrameQueueScheduler` tries to fit multiple task ticks into a frame,
-more than one log statement will be output per frame. The number will increase as the
-example warms up.
+Because `AnimationFrameQueueScheduler` tries to fit multiple task ticks into a frame, more than one log statement will be output per frame. The number will increase as the example warms up.
 
 ## API
 
@@ -94,26 +103,12 @@ class TaskContext {
 }
 ```
 
-## Install
+## Build and Test
 
 ```
 git clone https://github.com/justinfagnani/queue-scheduler.git
 cd queue-scheduler
-yarn global add polymer-cli@next
-yarn install
-bower install
+npm install
 npm run build
+npm test
 ```
-
-## Run the two little tests
-
-```
-polymer test lib/test/scheduler_test.html -l chrome -p
-```
-
-## Performance
-
-No optimizations of profiling has been done. One trip though the scheduler and
-back to a task takes about 1ms on Chrome 56, which isn't very fast, suggesting
-some low hanging fruit, or slow Promises. The same round-trip is about 10x faster
-on Chrome 57 🎉, with out without native async functions.
