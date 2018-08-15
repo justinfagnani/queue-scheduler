@@ -1,18 +1,18 @@
-import {AnimationFrameQueueScheduler, IdleQueueScheduler, Scheduler, TaskContext} from '../scheduler.js';
-// import {assert} from 'chai';
+import {
+  AnimationFrameQueueScheduler,
+  IdleQueueScheduler,
+  Scheduler,
+  TaskContext
+} from '../index.js';
 
-declare let assert: any;
+declare const assert: Chai.Assert;
 
 suite('scheduler', () => {
-
   let scheduler: Scheduler;
 
-  setup(() => {
-    scheduler = new Scheduler();
-  })
+  setup(() => { scheduler = new Scheduler(); })
 
   test('a task is executed', async () => {
-
     scheduler.addQueue('test', new AnimationFrameQueueScheduler());
     const task = async (context: TaskContext) => {
       console.log('task started');
@@ -25,11 +25,9 @@ suite('scheduler', () => {
     };
     const result = await scheduler.scheduleTask('test', task);
     assert.equal(42, result);
-
   });
 
   test('two tasks are executed concurrently', async () => {
-
     scheduler.addQueue('test', new AnimationFrameQueueScheduler());
 
     const task1 = async (context: TaskContext) => {
@@ -57,13 +55,10 @@ suite('scheduler', () => {
     ]);
     assert.equal(42, result1);
     assert.equal(99, result2);
-
   });
 
   suite('IdleQueueScheduler', async () => {
-
     test('executes a task', async () => {
-
       scheduler.addQueue('idle', new IdleQueueScheduler());
       const task = async (context: TaskContext) => {
         console.log('task started');
@@ -77,7 +72,5 @@ suite('scheduler', () => {
       const result = await scheduler.scheduleTask('idle', task);
       assert.equal(42, result);
     });
-
   });
-
 });

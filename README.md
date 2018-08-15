@@ -12,9 +12,7 @@ frame, idle, setInterval, or other timing.
 ## Example
 
 ```typescript
-const scheduler = new Scheduler();
-
-scheduler.addQueue('animation', new AnimationFrameQueueScheduler());
+import {scheduler} from 'schduler';
 
 const task = async (context: TaskContext) => {
   for (let i = 0; i < 50; i++) {

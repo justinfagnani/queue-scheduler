@@ -1,17 +1,20 @@
 {
   "name": "queue-scheduler",
   "scripts": {
-    "build": "tsc && cp ./src/test/*.html ./lib/test"
+    "build": "tsc",
+    "test": "wct --npm -l chrome",
+    "format": "find src -name \"*.ts\" | xargs clang-format --style=file -i"
   },
   "devDependencies": {
-    "@types/chai": "^3.4.34",
-    "@types/mocha": "^2.2.32",
-    "@types/node": "^6.0.46",
-    "typescript": "^2.1.4"
+    "@types/chai": "^4.1.4",
+    "@types/mocha": "^5.2.5",
+    "typescript": "^3.0.1",
+    "wct-browser-legacy": "^1.0.1",
+    "web-component-tester": "^6.7.1"
   },
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A scheduling API for JavaScript",
-  "main": "lib/scheduler.js",
+  "main": "index.js",
   "repository": "https://github.com/justinfagnani/queue-scheduler",
   "author": "justin@fagnani.com",
   "license": "Apache 2.0"
