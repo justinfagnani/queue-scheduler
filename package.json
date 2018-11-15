@@ -3,7 +3,8 @@
   "scripts": {
     "build": "tsc",
     "test": "wct --npm -l chrome -p",
-    "format": "find src -name \"*.ts\" | xargs clang-format --style=file -i"
+    "format": "find src -name \"*.ts\" | xargs clang-format --style=file -i",
+    "start": "polymer serve"
   },
   "devDependencies": {
     "@types/chai": "^4.1.4",

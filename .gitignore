@@ -6,3 +6,6 @@
 /test/**/*.d.ts
 /test/**/*.js
 /test/**/*.js.map
+/benchmark/**/*.d.ts
+/benchmark/**/*.js
+/benchmark/**/*.js.map
