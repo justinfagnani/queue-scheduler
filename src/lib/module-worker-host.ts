@@ -1,4 +1,4 @@
-let module: any;
+let moduleObject: any;
 let url: string;
 
 addEventListener('message', async (e: MessageEvent) => {
@@ -15,8 +15,8 @@ addEventListener('message', async (e: MessageEvent) => {
         throw new Error('Module already loaded for ModuleWorker');
       }
       url = e.data.url;
-      module = await import(url);
-      exportNames = Array.from(Object.keys(module));
+      moduleObject = await import(url);
+      exportNames = Array.from(Object.keys(moduleObject));
     } catch (e) {
       error = e;
     }
@@ -30,7 +30,7 @@ addEventListener('message', async (e: MessageEvent) => {
     let value, error;
 
     try {
-      value = await module[e.data.name];
+      value = await moduleObject[e.data.name];
     } catch (e) {
       error = e;
     }
@@ -45,7 +45,7 @@ addEventListener('message', async (e: MessageEvent) => {
     let value, error;
 
     try {
-      value = await module[e.data.name](...e.data.args);
+      value = await moduleObject[e.data.name](...e.data.args);
     } catch (e) {
       error = e;
     }

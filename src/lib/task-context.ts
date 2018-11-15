@@ -1,5 +1,5 @@
 import {Deferred} from './deferred.js';
-import {Task} from './task.js';
+import {LocalTask} from './task.js';
 
 const notStarted = 0;
 const started = 1;
@@ -9,8 +9,8 @@ const canceled = 3;
 type TaskState =
     typeof notStarted|typeof started|typeof complete|typeof canceled;
 
-export class TaskContext<T> {
-  private _task: Task<T>;
+export class LocalTaskContext<T> {
+  task: LocalTask<T>;
 
   private _state: TaskState = notStarted;
 
@@ -25,9 +25,12 @@ export class TaskContext<T> {
    */
   private _continueDeferred?: Deferred<void>;
 
+  /**
+   * Controls the Promise returned by continue(). Resolves when the task yields.
+   */
   private _yieldDeferred?: Deferred<boolean> = new Deferred<boolean>();
 
-  constructor(task: Task<T>) { this._task = task; }
+  constructor(task: LocalTask<T>) { this.task = task; }
 
   get completed() { return this._completedDeferred.promise; }
 
@@ -39,7 +42,11 @@ export class TaskContext<T> {
   yield(): Promise<void> {
     console.assert(this._continueDeferred === undefined);
 
+    // Capture the Deferred returned from the previous call to continue() so
+    // that we can resolve it.
     const _yield = this._yieldDeferred!.resolve;
+
+    // Create a new Deferred for the next call to continue()
     this._yieldDeferred = new Deferred<boolean>();
     _yield(false);
 
@@ -59,12 +66,20 @@ export class TaskContext<T> {
     if (this._state === notStarted) {
       this._state = started;
 
-      // We haven't started the task, so invoke the task function.
+      // We haven't started the task, so invoke the task function. This is an
+      // async operation, so we'll immediately return the _yieldDeferred
+      // Promise.
       (async () => {
         try {
-          // force task start to wait so we can await it yielding first
+          // Wait to start the task so that we can await it's yield() call.
           await 0;
-          const result = await this._task.call(null, this);
+          const start = performance.now();
+          const result = this.task.call(null, this);
+          const end = performance.now();
+          // TODO: report duration somewhere!
+          const duration = end - start;
+          console.log('sync time', duration);
+          await result;
           this._completedDeferred.resolve(result);
         } catch (e) {
           this._completedDeferred.reject(e);

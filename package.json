@@ -2,7 +2,7 @@
   "name": "queue-scheduler",
   "scripts": {
     "build": "tsc",
-    "test": "wct --npm -l chrome",
+    "test": "wct --npm -l chrome -p",
     "format": "find src -name \"*.ts\" | xargs clang-format --style=file -i"
   },
   "devDependencies": {

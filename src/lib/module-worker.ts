@@ -32,10 +32,10 @@ export class ModuleWorker<M = any> {
 
   constructor(url: string|URL) {
     let resolveModule: (module: any) => void;
-    let rejectModule;
-    this.module = new Promise((resolve, reject) => {
+    // let rejectModule;
+    this.module = new Promise((resolve, _reject) => {
       resolveModule = resolve;
-      rejectModule = reject;
+      // rejectModule = reject;
     });
     this._worker = new Worker('./module-worker-host.js');
     this._worker.postMessage({

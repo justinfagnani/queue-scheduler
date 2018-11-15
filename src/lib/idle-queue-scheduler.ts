@@ -1,4 +1,4 @@
-import {BaseQueueScheduler} from './base-queue-scheduler.js';
+import {BaseLocalQueueScheduler} from './base-queue-scheduler.js';
 
 /**
  * A QueueScheduler that uses requestIdleCallback timing.
@@ -6,7 +6,7 @@ import {BaseQueueScheduler} from './base-queue-scheduler.js';
  * This scheduler tries to fit in as many task ticks as will fit under the
  * extimated time that the UA expects the user to remain idle.
  */
-export class IdleQueueScheduler extends BaseQueueScheduler {
+export class IdleQueueScheduler extends BaseLocalQueueScheduler {
   protected _schedule(): number {
     return window.requestIdleCallback(
         (deadline) => { this._execute(deadline.timeRemaining()); });

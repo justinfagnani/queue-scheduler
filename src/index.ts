@@ -9,8 +9,8 @@ export {
 } from './lib/animation-frame-queue-scheduler.js';
 export {IdleQueueScheduler} from './lib/idle-queue-scheduler.js';
 export {Scheduler} from './lib/scheduler.js';
-export {TaskContext} from './lib/task-context.js';
-export {Task} from './lib/task.js';
+export {LocalTaskContext} from './lib/task-context.js';
+export {LocalTask} from './lib/task.js';
 
 /**
  * The global Schduler instance.
@@ -27,7 +27,7 @@ export const scheduler = new Scheduler();
  * QueueSchedulers.
  */
 export const animationQueueScheduler = new AnimationFrameQueueScheduler();
-scheduler.addQueue('animation', animationQueueScheduler);
+scheduler.addLocalQueue('animation', animationQueueScheduler);
 
 /**
  * The global IdleQueueScheduler.
@@ -35,4 +35,4 @@ scheduler.addQueue('animation', animationQueueScheduler);
  * Queues should not create their own IdleQueueScheduler.
  */
 export const idleQueueScheduler = new IdleQueueScheduler();
-scheduler.addQueue('idle', idleQueueScheduler);
+scheduler.addLocalQueue('idle', idleQueueScheduler);

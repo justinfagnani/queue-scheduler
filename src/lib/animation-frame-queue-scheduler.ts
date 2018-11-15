@@ -1,4 +1,4 @@
-import {BaseQueueScheduler} from './base-queue-scheduler.js';
+import {BaseLocalQueueScheduler} from './base-queue-scheduler.js';
 
 /**
  * A QueueScheduler that uses requestAnimationFrame timing.
@@ -9,7 +9,7 @@ import {BaseQueueScheduler} from './base-queue-scheduler.js';
  * estimate and doesn't try to fit in faster tasks if a long one is next, so
  * slow tasks can starve fast ones.
  */
-export class AnimationFrameQueueScheduler extends BaseQueueScheduler {
+export class AnimationFrameQueueScheduler extends BaseLocalQueueScheduler {
 
   /**
    * Time allocated to script execution per frame, in ms.

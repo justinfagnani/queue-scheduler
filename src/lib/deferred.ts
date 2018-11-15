@@ -1,3 +1,7 @@
+/**
+ * A convenice class for creating a Promise and storing the resolve and reject
+ * callbacks for it.
+ */
 export class Deferred<T> {
   promise: Promise<T> = new Promise((resolve, reject) => {
     this.resolve = resolve;

@@ -1,34 +1,53 @@
-import {TaskContext} from './task-context.js';
-import {TaskQueue} from './task-queue.js';
+import {LocalTaskContext} from './task-context.js';
+import {LocalTaskQueue} from './local-task-queue.js';
 
-export abstract class BaseQueueScheduler {
-  protected _queues = new Set<TaskQueue>();
-  protected _queueIterator: Iterator<TaskQueue>;
-  protected _queueData = new WeakMap<TaskQueue, any>();
-  protected _taskData = new WeakMap<TaskContext<any>, any>();
+/**
+ * A base class for schedulers that can manage multiple queues, executing tasks
+ * in a round-robin fashion.
+ * 
+ * Subclasses must implement _schedule() to 
+ */
+export abstract class BaseLocalQueueScheduler {
+  protected _queues = new Set<LocalTaskQueue>();
+  protected _queueIterator: Iterator<LocalTaskQueue>;
+  protected _queueData = new WeakMap<LocalTaskQueue, any>();
+  protected _taskData = new WeakMap<LocalTaskContext<any>, any>();
 
   protected _callbackId = 0;
 
-  protected _nextQueue?: TaskQueue;
-  protected _nextTask?: TaskContext<any>;
+  protected _nextQueue?: LocalTaskQueue;
+  protected _nextTaskContext?: LocalTaskContext<any>;
 
-  constructor() { this._queueIterator = this._queues.values(); }
+  constructor() {
+    this._queueIterator = this._queues.values();
+  }
 
-  schedule(queue: TaskQueue): void {
+  /**
+   * Schedule a new callback of _execute. Returns a callback id.
+   */
+  protected abstract _schedule(): number;
+
+  /**
+   * 
+   */
+  schedule(queue: LocalTaskQueue): void {
     this._queues.add(queue);
     if (!this._queueData.has(queue)) {
       this._queueData.set(queue, {
         taskIterator : queue.tasks.values(),
       });
     }
-    if (this._nextTask === undefined) {
+    if (this._nextTaskContext === undefined) {
       this.advanceTask();
     }
-    if (this._nextTask !== undefined && this._callbackId === 0) {
+    if (this._nextTaskContext !== undefined && this._callbackId === 0) {
       this._callbackId = this._schedule();
     }
   }
 
+  /**
+   * Pick the next queue to schedule a task for from `this._queues`.
+   */
   private _advanceQueue() {
     if (this._queues.size === 0) {
       this._nextQueue = undefined;
@@ -44,15 +63,18 @@ export abstract class BaseQueueScheduler {
     this._nextQueue = next.value;
   }
 
+  /**
+   * Pick the next queue to schedule a task for from `this._queues`.
+   */
   advanceTask() {
     this._advanceQueue();
     const queue = this._nextQueue;
     if (queue === undefined) {
-      this._nextTask = undefined;
+      this._nextTaskContext = undefined;
       return;
     }
     if (queue.tasks.size === 0) {
-      this._nextTask = undefined;
+      this._nextTaskContext = undefined;
       return;
     }
     const queueData = this._queueData.get(queue);
@@ -62,10 +84,11 @@ export abstract class BaseQueueScheduler {
       next = queueData.taskIterator.next();
     }
     console.assert(!next.done);
-    this._nextTask = next.value;
+    const nextTask = next.value;
+    this._nextTaskContext = queue.contexts.get(nextTask);
   }
 
-  getTaskData(task: TaskContext<any>) {
+  getTaskData(task: LocalTaskContext<any>) {
     let taskData = this._taskData.get(task);
     if (taskData === undefined) {
       taskData = {
@@ -78,19 +101,20 @@ export abstract class BaseQueueScheduler {
   }
 
   /**
-   * Schedule a new callback of _execute. Returns a callback id.
+   * Executes a batch of tasks, using previous run data to attempt to fit the
+   * batch within the `initialTimeRemaining` remaining budget.
+   * 
+   * _execute() must be called from _schedule() implemented by a concrete base
+   * class.
    */
-  protected abstract _schedule(): number;
-
   protected async _execute(initialTimeRemaining: number) {
-    console.log(`BaseQueueScheduler._execute ${initialTimeRemaining}`);
     // Mark that we don't have a scheduled callback
     this._callbackId = 0;
     const estimatedEnd = performance.now() + initialTimeRemaining;
     let tasksExecuted = 0;
-    while (this._nextTask) {
-      const task = this._nextTask;
-      const taskData = this.getTaskData(task);
+    while (this._nextTaskContext) {
+      const context = this._nextTaskContext;
+      const taskData = this.getTaskData(context);
       const start = performance.now();
       const timeRemaining = estimatedEnd - start;
       // Always execute at least one task, or if we think there's enough time
@@ -98,7 +122,10 @@ export abstract class BaseQueueScheduler {
       if (tasksExecuted === 0 || timeRemaining >= taskData.avgTickDuration) {
         tasksExecuted++;
         this.advanceTask();
-        const done = await task.continue();
+        const done = await context.continue();
+        // Note: this measures the _async_ time of context.continue()
+        // If task functions yield to something other than the task context
+        // we will overestimate the time!!!
         const end = performance.now();
         const duration = end - start;
         taskData.avgTickDuration =
@@ -108,8 +135,8 @@ export abstract class BaseQueueScheduler {
           // clean up task
           // const queue = task._queue;
           const queue = this._nextQueue!;
-          queue.removeTask(task);
-          if (this._nextTask === task) {
+          queue.removeTask(context.task);
+          if (this._nextTaskContext === context) {
             this.advanceTask();
           }
         }
@@ -117,7 +144,7 @@ export abstract class BaseQueueScheduler {
         break;
       }
     }
-    if (this._nextTask !== undefined && this._callbackId === 0) {
+    if (this._nextTaskContext !== undefined && this._callbackId === 0) {
       this._callbackId = this._schedule();
     }
   }

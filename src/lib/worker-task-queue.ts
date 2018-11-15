@@ -1,23 +1,29 @@
 import {QueueScheduler} from './queue-scheduler.js';
-import {TaskFunction} from './task-function.js';
-import {LocalTaskInfo} from './task.js';
-import { WorkerTask } from './worker-task.js';
+import {WorkerTask} from './task.js';
+import { TaskQueue } from './task-queue.js';
+import { WorkerTaskContext } from './worker-task-context.js';
 
-export class WorkerTaskQueue {
+export type WorkerQueueScheduler = QueueScheduler<WorkerTaskQueue, WorkerTask<any>>;
+
+export class WorkerTaskQueue implements TaskQueue<WorkerTask<any>> {
   name?: string;
-  tasks = new Set<WorkerTask>();
-  scheduler: QueueScheduler;
+  tasks = new Set<WorkerTask<any>>();
+  readonly contexts = new WeakMap<WorkerTask<any>, WorkerTaskContext<any>>();
+  scheduler: WorkerQueueScheduler;
 
-  constructor(scheduler: QueueScheduler) { this.scheduler = scheduler; }
+  constructor(scheduler: WorkerQueueScheduler) { this.scheduler = scheduler; }
 
-  scheduleTask<T>(task: WorkerTask): Promise<T> {
+  scheduleTask<T>(task: WorkerTask<T>): Promise<T> {
+    const context = new WorkerTaskContext<T>(task);
     this.tasks.add(task);
+    this.contexts.set(task, context);
     this.scheduler.schedule(this);
-    return task._completed;
+    return context.completed;
   }
 
-  removeTask(task: LocalTaskInfo<any>) {
-    console.assert(task._queue === this);
+  removeTask(task: WorkerTask<any>) {
+    // console.assert(task._queue === this);
     this.tasks.delete(task);
   }
 }
+
